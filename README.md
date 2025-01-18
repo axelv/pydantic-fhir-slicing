@@ -1,8 +1,12 @@
-# FHIR-Pydantic Slicing
+# 🔪 FHIR-Pydantic Slicing
+
+[![PyPI version](https://badge.fury.io/py/pydantic-fhir-slicing.svg)](https://badge.fury.io/py/pydantic-fhir-slicing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 A Python library that simplifies working with nested elements in FHIR resources using Pydantic models and smart slicing.
 
-## The Challenge
+## 🤔 The Challenge
 
 Working with FHIR resources in Python can be challenging due to their complex structure and extensibility. FHIR resources often contain:
 - Nested elements with cardinality `0..*` or `1..*`
@@ -36,14 +40,14 @@ systolic = next(
 )
 ```
 
-## Solution: Smart Slicing
+## ✨ Solution: Smart Slicing
 
 This library introduces a __more intuitive way to access nested FHIR data using named slices__, inspired by FHIR's slicing mechanism.
 
 Known slices are defined as annotated fields in Pydantic models, which provide:
-- Validation of slice cardinality
-- Type safety for slice elements
-- Improved readability
+- ✅ Validation of slice cardinality
+- 🛡️ Type safety for slice elements
+- 📖 Improved readability
 
 Unkown elements are left untouched and the order of elements is preserved.
 
@@ -115,16 +119,16 @@ diastolic = bp.component.diastolic.valueQuantity.value
 
 ```
 
-## Installation
+## 🚀 Installation (coming soon)
 
 ```bash
 pip install pydantic-fhir-slicing
 ```
 
-## Contributing
+## 👥 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+## 📜 License
 
 MIT License
