@@ -1,6 +1,6 @@
 # FHIR-Pydantic Slicing
 
-A Python library that simplifies working with FHIR resources using Pydantic models and smart slicing.
+A Python library that simplifies working with nested elements in FHIR resources using Pydantic models and smart slicing.
 
 ## The Challenge
 
@@ -18,12 +18,16 @@ birth_place = next(
      if e.url == "http://hl7.org/fhir/StructureDefinition/patient-birthPlace"),
     None
 )
+```
 
 ```python
 # Traditional way to access systolic blood pressure
-bp_reading = observation.component[0].valueQuantity.value  # Fragile!
+bp_reading = observation.component[0].valueQuantity.value  # Fragile! Assumes systolic is first
+```
 
-# or with type checking
+```python
+
+# or by code but not very readable
 systolic = next(
     (c.valueQuantity.value
      for c in observation.component
@@ -34,7 +38,7 @@ systolic = next(
 
 ## Solution: Smart Slicing
 
-This library introduces a more intuitive way to access FHIR data using named slices, inspired by FHIR's slicing mechanism.
+This library introduces a __more intuitive way to access nested FHIR data using named slices__, inspired by FHIR's slicing mechanism.
 
 Known slices are defined as annotated fields in Pydantic models, which provide:
 - Validation of slice cardinality
