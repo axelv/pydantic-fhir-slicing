@@ -5,11 +5,19 @@ A Python library that simplifies working with FHIR resources using Pydantic mode
 ## The Challenge
 
 Working with FHIR resources in Python can be challenging due to their complex structure and extensibility. FHIR resources often contain:
-- Arrays of nested objects
-- Optional extensions
-- Variable cardinality (0..*, 1..*, 0..1, etc.)
+- Nested elements with cardinality `0..*` or `1..*`
+- Extension arrays with unknown elements
 
 This leads to verbose and error-prone code when accessing nested data:
+
+```python
+# Traditional way to access birth place
+birth_place = next(
+    (e.valueAddress.city
+     for e in patient.extension
+     if e.url == "http://hl7.org/fhir/StructureDefinition/patient-birthPlace"),
+    None
+)
 
 ```python
 # Traditional way to access systolic blood pressure
