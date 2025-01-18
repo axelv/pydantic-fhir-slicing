@@ -50,7 +50,6 @@ Unkown elements are left untouched and the order of elements is preserved.
 **Example: Patient with birthPlace extension**
 
 ```python
-from typing import Any, Annotated
 from pydantic_fhir_slicing import Slice, ElementArray
 from my_fhir_types import Address, BaseModel
 
@@ -59,9 +58,9 @@ class AddressExtension(BaseModel):
     valueAddress: Address
 
 class PatientExtensions(ElementArray):
-    birthPlace: Annotated[AddressExtension] = Slice(1, 1)
+    birthPlace: AddressExtension = Slice(1, 1)
 
-    def discriminator(self, item: Any) -> str:
+    def discriminator(self, item) -> str:
         url = item.get("url", None)
         match url
             case "http://hl7.org/fhir/StructureDefinition/patient-birthPlace":
@@ -82,7 +81,6 @@ patient.extension[0]  # Still works for accessing any extension
 
 ```python
 from pydantic_fhir_slicing import ElementArray
-from typing import Any, Annotated
 from my_fhir_types import CodeableConcept, Quantity, BaseModel
 
 class QuantityComponent(BaseModel):
