@@ -1,15 +1,14 @@
-from dataclasses import dataclass
-from typing import Annotated, List, Literal, Sequence
+from typing import Any, ClassVar, List, Literal
 
-from pydantic import BaseModel, PositiveInt, TypeAdapter
+from pydantic import PositiveInt, TypeAdapter
 
+from base import BaseModel
 from extension import (
-    BaseExtension,
     BaseExtensionArray,
     BaseSimpleExtension,
     GeneralExtension,
 )
-from utils import Cardinality
+from slice import Slice
 
 
 def test_extension_model_get_url():
@@ -26,14 +25,9 @@ def test_extension_array_from_extension_list():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
         valueString: str
 
-    @dataclass
     class ExtensionArray(BaseExtensionArray):
-        a: Annotated[List[MyExtensionA], Cardinality(0, "*")]
-        b: Annotated[MyExtensionB, Cardinality(1, 1)]
-
-        @classmethod
-        def from_extension_list(cls, ext_list: Sequence[BaseExtension]):
-            return cls.from_element_list(ext_list, discriminator=cls.discriminator)
+        a: List[MyExtensionA] = Slice(0, "*")
+        b: MyExtensionB = Slice(1, 1)
 
     ext_list = [
         MyExtensionA(url="http://example.com/extension-a", valueString="a"),
@@ -43,11 +37,10 @@ def test_extension_array_from_extension_list():
         GeneralExtension.model_validate({"url": "http://example.com", "valueInteger": 3}),
     ]
 
-    ext_array = ExtensionArray.from_extension_list(ext_list)
-
+    ext_array = ExtensionArray(ext_list)
     assert ext_array.a == ext_list[:3]
     assert ext_array.b == ext_list[3]
-    assert ext_array.other == [ext_list[4]]
+    assert list(ext_array) == ext_list
 
 
 def test_extension_array_validator():
@@ -57,10 +50,10 @@ def test_extension_array_validator():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
         valueString: str
 
-    @dataclass
     class ExtensionArray(BaseExtensionArray):
-        a: Annotated[List[MyExtensionA], Cardinality(0, "*")]
-        b: Annotated[MyExtensionB, Cardinality(1, 1)]
+        allow_other_elements: ClassVar[bool] = True
+        a: List[MyExtensionA] = Slice(0, "*")
+        b: MyExtensionB = Slice(1, 1)
 
     ext_list = [
         {"url": "http://example.com", "valueInteger": 5},
@@ -80,8 +73,6 @@ def test_extension_array_validator():
 
     assert ext_array.b == MyExtensionB(url="http://example.com/extension-b", valueString="4")
 
-    assert ext_array.other == [GeneralExtension.model_validate({"url": "http://example.com", "valueInteger": 5})]
-
     ext_list_roundtrip = TypeAdapter(ExtensionArray).dump_python(ext_array, mode="python")
     assert ext_list_roundtrip == ext_list
 
@@ -93,21 +84,20 @@ def test_extension_array_ordering_roundtrip():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
         valueString: str
 
-    @dataclass
     class ExtensionArray(BaseExtensionArray):
-        a: Annotated[List[MyExtensionA], Cardinality(0, "*")]
-        b: Annotated[MyExtensionB, Cardinality(1, 1)]
+        a: List[MyExtensionA] = Slice(0, "*")
+        b: MyExtensionB = Slice(1, 1)
 
     ext_array = ExtensionArray(
-        a=[
+        (
             MyExtensionA(url="http://example.com/extension-a", valueString="a"),
             MyExtensionA(url="http://example.com/extension-a", valueString="a"),
             MyExtensionA(url="http://example.com/extension-a", valueString="a"),
-        ],
-        b=MyExtensionB(url="http://example.com/extension-b", valueString="b"),
+            MyExtensionB(url="http://example.com/extension-b", valueString="b"),
+        )
     )
 
-    ext_list = TypeAdapter(ExtensionArray).validate_python(ext_array)
+    ext_list = TypeAdapter(ExtensionArray).dump_python(ext_array)
 
     assert ext_list == [
         {"url": "http://example.com/extension-a", "valueString": "a"},
@@ -125,9 +115,8 @@ def test_patient_use_case():
     class MultipleBirth(BaseSimpleExtension[Literal["http://hl7.org/fhir/StructureDefinition/patient-multipleBirth"]]):
         valueInteger: PositiveInt
 
-    @dataclass
     class PatientExtensions(BaseExtensionArray):
-        multiple_birth: Annotated[MultipleBirth, Cardinality(1, 1)]
+        multiple_birth: MultipleBirth = Slice(1, 1)
 
     class PatientName(BaseModel):
         text: str
@@ -145,7 +134,7 @@ def test_patient_use_case():
             return self.extensions.multiple_birth.valueInteger
 
         @multiple_birth.setter
-        def multiple_birth(self, value: PositiveInt):
+        def set_multiple_birth(self, value: PositiveInt):
             self.extensions.multiple_birth.valueInteger = value
 
     patient = Patient.model_validate(
@@ -170,3 +159,99 @@ def test_patient_use_case():
 
     assert patient.extensions.multiple_birth.valueInteger == 3
     assert patient.multiple_birth == 3
+
+
+def test_blood_pressure_use_case():
+    class Quantity(BaseModel):
+        value: float
+        unit: str
+
+    class Coding(BaseModel):
+        system: str
+        code: str
+        display: str
+
+    class CodeableConcept(BaseModel):
+        coding: list[Coding]
+        text: str | None = None
+
+    class BloodPressureComponent(BaseModel):
+        valueQuantity: Quantity
+        code: CodeableConcept
+
+    class BloodPressureComponents(BaseExtensionArray):
+        systolic: BloodPressureComponent = Slice(1, 1)
+        diastolic: BloodPressureComponent = Slice(1, 1)
+
+        @classmethod
+        def discriminator(cls, value: Any) -> str:
+            code = value.get("code", {}).get("coding", [{}])[0].get("code", None)
+            match code:
+                case "8480-6":
+                    return "systolic"
+                case "8462-4":
+                    return "diastolic"
+                case _:
+                    return "@default"
+
+    class BloodPressure(BaseModel):
+        resourceType: Literal["Observation"] = "Observation"
+        code: CodeableConcept
+        components: BloodPressureComponents
+
+        @property
+        def systolic(self):
+            return self.components.systolic.valueQuantity.value
+
+        @property
+        def diastolic(self):
+            return self.components.diastolic.valueQuantity.value
+
+    blood_pressure = BloodPressure.model_validate(
+        {
+            "resourceType": "Observation",
+            "code": {
+                "coding": [
+                    {
+                        "system": "http://loinc.org",
+                        "code": "55284-4",
+                        "display": "Blood pressure",
+                    }
+                ],
+                "text": "Blood pressure",
+            },
+            "components": [
+                {
+                    "valueQuantity": {"value": 120, "unit": "mm[Hg]"},
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://loinc.org",
+                                "code": "8480-6",
+                                "display": "Systolic blood pressure",
+                            }
+                        ],
+                        "text": "Systolic blood pressure",
+                    },
+                },
+                {
+                    "valueQuantity": {"value": 80, "unit": "mm[Hg]"},
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://loinc.org",
+                                "code": "8462-4",
+                                "display": "Diastolic blood pressure",
+                            }
+                        ],
+                        "text": "Diastolic blood pressure",
+                    },
+                },
+            ],
+        }
+    )
+
+    assert blood_pressure.components.systolic.valueQuantity.value == 120
+    assert blood_pressure.systolic == 120
+    assert blood_pressure.components.diastolic.valueQuantity.value == 80
+    assert blood_pressure.diastolic == 80

@@ -26,55 +26,89 @@ systolic = next(
 
 ## Solution: Smart Slicing
 
-This library introduces a more intuitive way to access FHIR data using named slices, inspired by FHIR's slicing mechanism:
+This library introduces a more intuitive way to access FHIR data using named slices, inspired by FHIR's slicing mechanism.
+
+Known slices are defined as annotated fields in Pydantic models, which provide:
+- Validation of slice cardinality
+- Type safety for slice elements
+- Improved readability
+
+Unkown elements are left untouched and the order of elements is preserved.
+
+```python
+
+**Example: Patient with birthPlace extension**
+
+```python
+from typing import Any, Annotated
+from pydantic_fhir_slicing import Slice, ElementArray
+from my_fhir_types import Address, BaseModel
+
+class AddressExtension(BaseModel):
+    url: str
+    valueAddress: Address
+
+class PatientExtensions(ElementArray):
+    birthPlace: Annotated[AddressExtension] = Slice(1, 1)
+
+    def discriminator(self, item: Any) -> str:
+        url = item.get("url", None)
+        match url
+            case "http://hl7.org/fhir/StructureDefinition/patient-birthPlace":
+                return "birthPlace"
+            case _:
+                return "@default"
+
+class Patient(BaseModel):
+    extension: PatientExtensions
+
+# Access known extensions by name, while preserving access to unknown ones
+patient.extension.birthPlace.valueAddress.city
+patient.extension[0]  # Still works for accessing any extension
+
+**Example: Blood Pressure Observation with systolic and diastolic components**
 
 ```python
 from pydantic_fhir_slicing import ElementArray
 from typing import Any, Annotated
+from my_fhir_types import CodeableConcept, Quantity, BaseModel
 
-class Component(BaseModel):
+class QuantityComponent(BaseModel):
     code: CodeableConcept
     valueQuantity: Quantity
 
-class BPComponents(ElementArray[Component]):
-    systolic: Annotated[Systolic, Cardinality(1, 1)] = Slice()
-    diastolic: Annotated[Diastolic, Cardinality(1, 1)] = Slice()
+class BPComponents(ElementArray):
+    systolic: QuantityComponent = Slice(1, 1)
+    diastolic: QuantityComponent = Slice(1, 1)
 
     def discriminator(self, item: Component) -> str:
-        return item.code.coding[0].code
+        try:
+            code = item["code"]["coding"][0]["code"]
+            match code
+                case "8480-6":
+                    return "systolic"
+                case "8462-4":
+                    return "diastolic"
+                case _:
+                    return "@default"
+        except (KeyError, IndexError):
+            return "@default"
 
-class BloodPressureObservation(Resource):
+class BloodPressureObservation(BaseModel):
+    code: CodeableConcept
     component: BPComponents
 
 # Access components naturally
 bp = BloodPressureObservation.model_validate(data)
 systolic = bp.component.systolic.valueQuantity.value
 diastolic = bp.component.diastolic.valueQuantity.value
-```
 
-## Handling Partial Knowledge
-
-FHIR resources often include extensions where only some values are known ahead of time. Our library handles this gracefully:
-
-```python
-class PatientExtensions(SliceableList[Extension]):
-    birthPlace: Annotated[Extension, Cardinality(0, 1)] = Slice()
-
-    def discriminator(self, item: Any) -> str:
-        return item.url
-
-class Patient(Resource):
-    extension: PatientExtensions
-
-# Access known extensions by name, while preserving access to unknown ones
-patient.extension.birthPlace.valueAddress.city
-patient.extension[0]  # Still works for accessing any extension
 ```
 
 ## Installation
 
 ```bash
-pip install fhir-pydantic-slicing
+pip install pydantic-fhir-slicing
 ```
 
 ## Contributing

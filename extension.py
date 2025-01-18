@@ -1,7 +1,6 @@
 import inspect
-from dataclasses import dataclass, fields
+from dataclasses import fields
 from typing import (
-    Annotated,
     Any,
     Literal,
     LiteralString,
@@ -13,7 +12,7 @@ from typing import (
 from pydantic import BaseModel
 
 from element_array import BaseElementArray
-from utils import Cardinality, get_source_type
+from utils import get_source_type
 
 TUrl = TypeVar("TUrl", bound=LiteralString)
 
@@ -47,10 +46,7 @@ class BaseSimpleExtension[TUrl](BaseExtension[TUrl]):
 TExtension = TypeVar("TExtension", bound=BaseSimpleExtension)
 
 
-@dataclass(kw_only=True)
-class BaseExtensionArray(BaseElementArray[BaseExtension, GeneralExtension]):
-    other: Annotated[list[GeneralExtension] | None, Cardinality(0, "*")] = None
-
+class BaseExtensionArray(BaseElementArray[BaseExtension]):
     @classmethod
     def get_url(cls, value: dict | BaseExtension) -> str | None:
         """Get the url of the extension"""
@@ -61,16 +57,16 @@ class BaseExtensionArray(BaseElementArray[BaseExtension, GeneralExtension]):
         return None
 
     @classmethod
-    def discriminator(cls, value: Any) -> str | None:
+    def discriminator(cls, value: Any) -> str:
         url = cls.get_url(value)
-        for field in fields(cls):
-            for source_type in get_source_type(field.type):
+        for slice_name, slice_annotation in cls.get_slice_annotations().items():
+            for source_type in get_source_type(slice_annotation):
                 is_class = inspect.isclass(source_type)
                 is_extension = is_class and issubclass(source_type, BaseExtension)
                 is_not_general_extension = is_extension and not issubclass(source_type, GeneralExtension)
                 if is_not_general_extension and source_type.get_url() == url:
-                    return field.name
-        return "other"
+                    return slice_name
+        return "@default"
 
 
 if __name__ == "__main__":
