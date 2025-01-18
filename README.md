@@ -35,8 +35,6 @@ Known slices are defined as annotated fields in Pydantic models, which provide:
 
 Unkown elements are left untouched and the order of elements is preserved.
 
-```python
-
 **Example: Patient with birthPlace extension**
 
 ```python
@@ -65,6 +63,8 @@ class Patient(BaseModel):
 # Access known extensions by name, while preserving access to unknown ones
 patient.extension.birthPlace.valueAddress.city
 patient.extension[0]  # Still works for accessing any extension
+
+```
 
 **Example: Blood Pressure Observation with systolic and diastolic components**
 
