@@ -62,7 +62,7 @@ class PatientExtensions(ElementArray):
 
     def discriminator(self, item) -> str:
         url = item.get("url", None)
-        match url
+        match url:
             case "http://hl7.org/fhir/StructureDefinition/patient-birthPlace":
                 return "birthPlace"
             case _:
@@ -94,7 +94,7 @@ class BPComponents(ElementArray):
     def discriminator(self, item: Component) -> str:
         try:
             code = item["code"]["coding"][0]["code"]
-            match code
+            match code:
                 case "8480-6":
                     return "systolic"
                 case "8462-4":
