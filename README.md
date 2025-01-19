@@ -50,7 +50,7 @@ Known slices are defined as annotated fields in Pydantic models, which provide:
 - 📖 Improved readability
 
 > [!NOTE]
-> Interested in how it works? Check out [this blog post](https://github.com/axelv/pydantic-fhir-slicing/NOTES.md) for more details.
+> Interested in how it works? Check out [this blog post](./NOTES.md) for more details.
 
 Unkown elements are left untouched and the order of elements is preserved.
 
