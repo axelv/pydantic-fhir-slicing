@@ -1,6 +1,6 @@
 ## FHIR Slicing for more intuitive data access
 
-FHIR slicing is a powerful mechanism to structure arrays of nested objects in FHIR resources. Given the 80/20 rule, FHIR naturally has lots of elements with cardinality 0..* or 1..* to allow for extensibility. But in specific cases, it is possible to constrain parts of these arrays and sometimes give names to certain elements.
+FHIR slicing is a powerful mechanism to structure arrays of nested objects in FHIR resources. Given the 80/20 rule, FHIR naturally has lots of elements with cardinality `0..*` or `1..*`to allow for extensibility. But in specific cases, it is possible to constrain parts of these arrays and sometimes give names to certain elements.
 Therefore, the standard has introduced the concept of slicing. Slicing was originally meant to be used in the context of profiles. In this post, we will explore how slicing can make our Python code more intuitive and less error-prone.
 
 ## Example: [Blood Pressure Observation][1]
