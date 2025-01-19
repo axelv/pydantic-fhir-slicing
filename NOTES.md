@@ -217,17 +217,16 @@ systolic = bp.component.systolic.valueQuantity.value # ✅ type safety
 # Shortcomings in the current implementation:
 
 1. Cardinality: slices are not taking into account cardinality. The cardinality also affects the type annotation of the slice:
-    - 0..1: Optional[Element]
-    - 1..1: Element
-    - 0..*: List[Element]
-    - 1..*: List[Element]
+    - `0..1`: `Optional[Element]`
+    - `0..*`: `List[Element]`
+    - `1..*`: `List[Element]`
 
-2. Default slices: the slices are not taking into account the default slices. The default slices are the slices that are present in the list but not explicitly defined in the model.
+2. Default slices: the slices are not taking into account the default slices.
 
 3. Mutability: the current implementation is not mutable. It is not possible to alter the slices of the list.
 
 
-These shortcomings have been addressed in the final implementation of the library. The final implementation can be found in the [Pydantic FHIR Slicing](
+These shortcomings have been addressed in the final implementation of the library. The final implementation can be found in the [pydantic-fhir-slicing](http://github.com/axelv/pydantic-fhir-slicing) repository.
 
 
 [1]: https://www.hl7.org/fhir/bp.html "Blood Pressure Observation"
