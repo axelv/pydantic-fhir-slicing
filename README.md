@@ -49,6 +49,8 @@ Known slices are defined as annotated fields in Pydantic models, which provide:
 - 🛡️ Type safety for slice elements
 - 📖 Improved readability
 
+!> **Note**: Interested in how it works? Check out [this blog post](https://github.com/axelv/pydantic-fhir-slicing/NOTES.md) for more details.
+
 Unkown elements are left untouched and the order of elements is preserved.
 
 **Example: Patient with birthPlace extension**
