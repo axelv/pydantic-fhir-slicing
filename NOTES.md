@@ -212,6 +212,7 @@ class BloodPressureObservation(BaseModel):
 bp = BloodPressureObservation.model_validate(data)
 systolic = bp.component.systolic.valueQuantity.value # ✅ type safety
 
+```
 
 # Shortcomings in the current implementation:
 
@@ -227,7 +228,6 @@ systolic = bp.component.systolic.valueQuantity.value # ✅ type safety
 
 
 These shortcomings have been addressed in the final implementation of the library. The final implementation can be found in the [Pydantic FHIR Slicing](
-
 
 
 [1]: https://www.hl7.org/fhir/bp.html "Blood Pressure Observation"
