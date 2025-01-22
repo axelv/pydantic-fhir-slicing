@@ -23,6 +23,7 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests
+
   publish:
     name: publish
     runs-on: ubuntu-latest
@@ -43,3 +44,5 @@ jobs:
 
       - name: Publish the project
         run: uv run publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}
