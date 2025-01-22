@@ -1,14 +1,13 @@
-from typing import Any, ClassVar, List, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import PositiveInt, TypeAdapter
 
-from base import BaseModel
-from extension import (
+from fhir_slicing import BaseModel, Slice, SliceList, slice
+from fhir_slicing.extension import (
     BaseExtensionArray,
     BaseSimpleExtension,
     GeneralExtension,
 )
-from slice import Slice
 
 
 def test_extension_model_get_url():
@@ -26,8 +25,8 @@ def test_extension_array_from_extension_list():
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
-        a: List[MyExtensionA] = Slice(0, "*")
-        b: MyExtensionB = Slice(1, 1)
+        a: SliceList[MyExtensionA] = slice(0, "*")
+        b: Slice[MyExtensionB] = slice(1, 1)
 
     ext_list = [
         MyExtensionA(url="http://example.com/extension-a", valueString="a"),
@@ -52,8 +51,8 @@ def test_extension_array_validator():
 
     class ExtensionArray(BaseExtensionArray):
         allow_other_elements: ClassVar[bool] = True
-        a: List[MyExtensionA] = Slice(0, "*")
-        b: MyExtensionB = Slice(1, 1)
+        a: SliceList[MyExtensionA] = slice(0, "*")
+        b: Slice[MyExtensionB] = slice(1, 1)
 
     ext_list = [
         {"url": "http://example.com", "valueInteger": 5},
@@ -85,8 +84,8 @@ def test_extension_array_ordering_roundtrip():
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
-        a: List[MyExtensionA] = Slice(0, "*")
-        b: MyExtensionB = Slice(1, 1)
+        a: SliceList[MyExtensionA] = slice(0, "*")
+        b: Slice[MyExtensionB] = slice(1, 1)
 
     ext_array = ExtensionArray(
         (
@@ -116,7 +115,7 @@ def test_patient_use_case():
         valueInteger: PositiveInt
 
     class PatientExtensions(BaseExtensionArray):
-        multiple_birth: MultipleBirth = Slice(1, 1)
+        multiple_birth: Slice[MultipleBirth] = slice(1, 1)
 
     class PatientName(BaseModel):
         text: str
@@ -180,8 +179,8 @@ def test_blood_pressure_use_case():
         code: CodeableConcept
 
     class BloodPressureComponents(BaseExtensionArray):
-        systolic: BloodPressureComponent = Slice(1, 1)
-        diastolic: BloodPressureComponent = Slice(1, 1)
+        systolic: Slice[BloodPressureComponent] = slice(1, 1)
+        diastolic: Slice[BloodPressureComponent] = slice(1, 1)
 
         @classmethod
         def discriminator(cls, value: Any) -> str:

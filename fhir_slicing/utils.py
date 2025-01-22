@@ -12,6 +12,8 @@ from typing import (
     get_origin,
 )
 
+from .slice import OptionalSlice, Slice, SliceList
+
 
 def get_source_type(annot) -> Iterator[type]:
     """Extract the source type from a optional type or sequence type
@@ -39,6 +41,9 @@ def get_source_type(annot) -> Iterator[type]:
         yield from get_source_type(get_args(annot)[0])
 
     elif origin is list or origin is set:
+        yield from get_source_type(get_args(annot)[0])
+
+    elif origin in (SliceList, OptionalSlice, Slice):
         yield from get_source_type(get_args(annot)[0])
 
     # check for Union or UnionType

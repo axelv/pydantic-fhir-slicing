@@ -1,10 +1,14 @@
 [project]
-name = "pydantic-fhir-slicing"
+name = "fhir-slicing"
 version = "0.1.0"
-description = "Add your description here"
+description = "FHIR Slicin utilities for Pydantic models"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["pydantic>=2.10.3", "pytest>=8.3.4"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pyright]
 venvPath = "."
@@ -12,3 +16,6 @@ venv = ".venv"
 
 [tool.ruff]
 line-length = 120
+
+[tool.uv.workspace]
+members = ["fhir-slicing"]

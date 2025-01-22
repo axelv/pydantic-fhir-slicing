@@ -11,8 +11,8 @@ from typing import (
 
 from pydantic import BaseModel
 
-from element_array import BaseElementArray
-from utils import get_source_type
+from .element_array import BaseElementArray
+from .utils import get_source_type
 
 TUrl = TypeVar("TUrl", bound=LiteralString)
 

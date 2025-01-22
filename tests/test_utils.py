@@ -2,7 +2,7 @@ from typing import Annotated, List, Optional
 
 import pytest
 
-from utils import (
+from fhir_slicing.utils import (
     Cardinality,
     get_source_type,
 )
