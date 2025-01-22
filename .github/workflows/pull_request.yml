@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: python
+    name: pytest
     runs-on: ubuntu-latest
 
     steps:
