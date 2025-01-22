@@ -1,4 +1,4 @@
-# 🔪 FHIR-Pydantic Slicing
+# 🔪 FHIR Slicing utilities for Pydantic
 
 [![PyPI version](https://badge.fury.io/py/pydantic-fhir-slicing.svg)](https://badge.fury.io/py/pydantic-fhir-slicing)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
