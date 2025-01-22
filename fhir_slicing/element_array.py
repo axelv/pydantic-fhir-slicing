@@ -13,11 +13,9 @@ from typing import (
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 
-from utils import FHIRType, get_source_type
+from .utils import FHIRType, get_source_type
 
 TUrl = TypeVar("TUrl", bound=LiteralString)
-
-
 TFhirType = TypeVar("TFhirType", bound=FHIRType)
 TPythonType = TypeVar("TPythonType")
 
