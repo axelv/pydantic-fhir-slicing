@@ -122,10 +122,10 @@ diastolic = bp.component.diastolic.valueQuantity.value
 
 ```
 
-## 🚀 Installation (coming soon)
+## 🚀 Installation
 
 ```bash
-pip install pydantic-fhir-slicing
+pip install fhir-slicing
 ```
 
 ## 👥 Contributing
