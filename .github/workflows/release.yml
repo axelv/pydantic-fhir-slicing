@@ -1,13 +1,11 @@
-name: Merge
+name: Release
 
-on:
-  push:
-    branches:
-      - main
+on: release
 
 jobs:
-  test:
-    name: pytest
+  publish:
+    needs: test
+    name: publish
     runs-on: ubuntu-latest
 
     steps:
@@ -21,5 +19,10 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Run tests
-        run: uv run pytest tests
+      - name: Build the project
+        run: uv build
+
+      - name: Publish the project
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}

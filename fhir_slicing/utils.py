@@ -55,6 +55,13 @@ def get_source_type(annot) -> Iterator[type]:
         raise ValueError(f"Cannot determine source type from {annot}")
 
 
+def get_value_from_literal(literal: type[Any] | None) -> Any:
+    """Get the value from a Literal type"""
+    if not isinstance(literal, Literal):
+        raise ValueError(f"Expected a Literal type, got {literal}")
+    return get_args(literal)[0]
+
+
 # All FHIR Data Types
 FHIRType = Literal[
     # Primitive Types

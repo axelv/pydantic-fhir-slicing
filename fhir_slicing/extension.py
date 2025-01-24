@@ -2,17 +2,14 @@ import inspect
 from dataclasses import fields
 from typing import (
     Any,
-    Literal,
     LiteralString,
+    Mapping,
     TypeVar,
-    get_args,
-    get_origin,
 )
 
-from pydantic import BaseModel
-
+from .base import BaseModel
 from .element_array import BaseElementArray
-from .utils import get_source_type
+from .utils import get_source_type, get_value_from_literal
 
 TUrl = TypeVar("TUrl", bound=LiteralString)
 
@@ -22,10 +19,8 @@ class BaseExtension[TUrl](BaseModel):
 
     @classmethod
     def get_url(cls) -> str:
-        url_type = cls.model_fields["url"].annotation
-        if get_origin(url_type) is not Literal:
-            raise ValueError(f"Cannot determine url from non-literal type in {cls}")
-        url = get_args(url_type)[0]
+        """Get the url of the extension"""
+        url = get_value_from_literal(cls.model_fields["url"].annotation)
         assert isinstance(url, str), f"Expected url to be a string, got {url}"
         return url
 
@@ -48,13 +43,9 @@ TExtension = TypeVar("TExtension", bound=BaseSimpleExtension)
 
 class BaseExtensionArray(BaseElementArray[BaseExtension]):
     @classmethod
-    def get_url(cls, value: dict | BaseExtension) -> str | None:
+    def get_url(cls, value: Mapping) -> str | None:
         """Get the url of the extension"""
-        if isinstance(value, dict):
-            return value.get("url", None)
-        if isinstance(value, BaseExtension):
-            return value.url
-        return None
+        return value.get("url", None)
 
     @classmethod
     def discriminator(cls, value: Any) -> str:
