@@ -6,6 +6,11 @@
 
 A Python library that simplifies working with nested elements in FHIR resources using Pydantic models and smart slicing.
 
+## 🚀 Installation
+```bash
+pip install fhir-slicing
+```
+
 ## 🤔 The Challenge
 
 Working with FHIR resources in Python can be challenging due to their complex structure and extensibility. FHIR resources often contain:
@@ -49,11 +54,29 @@ Known slices are defined as annotated fields in Pydantic models, which provide:
 - 🛡️ Type safety for slice elements
 - 📖 Improved readability
 
+**Example: Patient with birthPlace extension**
+
+```python
+# Access known extensions by name, while preserving access to unknown ones
+patient.extension.birthPlace.valueAddress.city
+patient.extension[0]  # Still works for accessing any extension
+
+```
+
+**Example: Blood Pressure Observation with systolic and diastolic components**
+
+```python
+# Access components naturally
+bp = BloodPressureObservation.model_validate(data)
+systolic = bp.component.systolic.valueQuantity.value
+diastolic = bp.component.diastolic.valueQuantity.value
+
+```
+## ❓ How
+Setting up your models for slicing is as simple as subclassing `ElementArray` and defining a discriminator method.
+
 > [!NOTE]
 > Interested in how it works? Check out [this blog post](./NOTES.md) for more details.
-
-Unkown elements are left untouched and the order of elements is preserved.
-
 **Example: Patient with birthPlace extension**
 
 ```python
@@ -77,11 +100,6 @@ class PatientExtensions(ElementArray):
 
 class Patient(BaseModel):
     extension: PatientExtensions
-
-# Access known extensions by name, while preserving access to unknown ones
-patient.extension.birthPlace.valueAddress.city
-patient.extension[0]  # Still works for accessing any extension
-
 ```
 
 **Example: Blood Pressure Observation with systolic and diastolic components**
@@ -114,18 +132,6 @@ class BPComponents(ElementArray):
 class BloodPressureObservation(BaseModel):
     code: CodeableConcept
     component: BPComponents
-
-# Access components naturally
-bp = BloodPressureObservation.model_validate(data)
-systolic = bp.component.systolic.valueQuantity.value
-diastolic = bp.component.diastolic.valueQuantity.value
-
-```
-
-## 🚀 Installation
-
-```bash
-pip install fhir-slicing
 ```
 
 ## 👥 Contributing
