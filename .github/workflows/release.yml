@@ -4,7 +4,6 @@ on: release
 
 jobs:
   publish:
-    needs: test
     name: publish
     runs-on: ubuntu-latest
 
