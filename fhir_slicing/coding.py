@@ -53,7 +53,7 @@ class BaseCodingArray(BaseElementArray[GeneralCoding]):
         # Ex. sct, SCTCoding
         for slice_name, slice_annotation in cls.get_slice_annotations().items():
             for source_type in get_source_type(slice_annotation, expect=BaseCoding):
-                if source_type.get_system() == cls.get_system(value):
+                if slice_name == "@default" or source_type.get_system() == cls.get_system(value):
                     return slice_name
         return "@default"
 

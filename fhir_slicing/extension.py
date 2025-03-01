@@ -1,7 +1,6 @@
 from dataclasses import fields
 from typing import (
     Any,
-    LiteralString,
     Mapping,
 )
 
@@ -10,7 +9,7 @@ from .element_array import BaseElementArray
 from .utils import get_source_type, get_value_from_literal
 
 
-class BaseExtension[TUrl: LiteralString](BaseModel):
+class BaseExtension[TUrl: str](BaseModel):
     url: TUrl
 
     @classmethod
@@ -25,7 +24,7 @@ class GeneralExtension(BaseExtension):
     model_config = {"extra": "allow"}
 
 
-class BaseSimpleExtension[TUrl: LiteralString](BaseExtension[TUrl]):
+class BaseSimpleExtension[TUrl: str](BaseExtension[TUrl]):
     url: TUrl
 
     @property
@@ -45,7 +44,7 @@ class BaseExtensionArray(BaseElementArray[BaseExtension]):
         url = cls.get_url(value)
         for slice_name, slice_annotation in cls.get_slice_annotations().items():
             for source_type in get_source_type(slice_annotation, expect=BaseExtension):
-                if source_type.get_url() == url:
+                if slice_name == "@default" or source_type.get_url() == url:
                     return slice_name
         return "@default"
 
