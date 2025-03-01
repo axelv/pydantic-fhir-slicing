@@ -23,7 +23,10 @@ class BaseSlice:
 
 class Slice[TValueType](BaseSlice):
     def __get__(self, obj: Iterable, objtype: type[Container] | None = None) -> TValueType:
-        return next(iter(filter(self.filter_element, obj)))
+        try:
+            return next(iter(filter(self.filter_element, obj)))
+        except StopIteration:
+            raise ValueError(f"No value for slice '{self.name}'.")
 
     def __set__(self, obj: List, value: Any):
         for index, element in enumerate(obj):

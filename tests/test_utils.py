@@ -3,7 +3,6 @@ from typing import Annotated, List, Optional
 import pytest
 
 from fhir_slicing.utils import (
-    Cardinality,
     get_source_type,
 )
 
@@ -25,20 +24,49 @@ def test_get_source_type(source, target):
     assert source_types == target
 
 
-def test_default_values_of_slice():
-    assert Cardinality(min_length=0, max_length="*") == Cardinality()
+class Base:
+    pass
+
+
+class A(Base):
+    pass
+
+
+class B(Base):
+    pass
+
+
+class C:
+    pass
 
 
 @pytest.mark.parametrize(
-    "slice, source, target",
+    "source, expected, raises",
     [
-        (Cardinality(0, "*"), [1, 2, 3], [1, 2, 3]),
-        (Cardinality(0, 1), [1], 1),
-        (Cardinality(0, 1), [], None),
-        (Cardinality(1, "*"), [1, 2, 3], [1, 2, 3]),
-        (Cardinality(1, "*"), [1], [1]),
-        (Cardinality(1, 1), [1], 1),
+        [A, Base, None],
+        [B, Base, None],
+        [C, Base, TypeError],
+        [A | None, Base, None],
+        [B | None, Base, None],
+        [C | None, Base, TypeError],
+        [Optional[A], Base, None],
+        [Optional[B], Base, None],
+        [Optional[C], Base, TypeError],
+        [List[A], Base, None],
+        [List[B], Base, None],
+        [List[C], Base, TypeError],
+        [List[A | B], Base, None],
+        [List[B | C], Base, TypeError],
+        [List[A | B] | None, Base, None],
+        [List[A | B] | None | None, Base, None],
+        [Annotated[List[A | B] | None, "some annotation"], Base, None],
+        [Annotated[List[A | C] | None, "some annotation"], Base, TypeError],
     ],
 )
-def test_aggregate_slice_elements(slice: Cardinality, source: list, target: list):
-    assert slice.aggregate_elements(source) == target
+def test_get_source_type_with_expect(source, expected, raises):
+    source_types_iter = get_source_type(source, expect=expected)
+    if raises:
+        with pytest.raises(raises):
+            tuple(source_types_iter)
+    else:
+        tuple(source_types_iter)

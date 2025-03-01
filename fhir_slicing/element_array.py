@@ -29,12 +29,10 @@ TDefaultElement = TypeVar("TDefaultElement")
 class BaseElementArray[TDefaultElement](List[TDefaultElement]):
     """A collection of elements that can be sliced and named using a discriminator."""
 
-    allow_other_elements: ClassVar[bool] = True
-
     @classmethod
     def get_slice_annotations(cls) -> dict[str, type]:
         return {
-            slice_name: slice_type
+            slice_name if slice_name != "_" else "@default": slice_type
             for slice_name, slice_type in inspect.get_annotations(cls).items()
             if get_origin(slice_type) is not ClassVar
         }
@@ -53,7 +51,7 @@ class BaseElementArray[TDefaultElement](List[TDefaultElement]):
             source_types = list(get_source_type(slice_type))
             match len(source_types):
                 case 0:
-                    raise ValueError(f"Expected a source type, got {source_types}")
+                    raise TypeError(f"Expected a source type, got none for {slice_name}")
                 case 1:
                     yield slice_name, handler(source_types[0])
                 case _:
@@ -66,10 +64,21 @@ class BaseElementArray[TDefaultElement](List[TDefaultElement]):
         ...
 
     @classmethod
+    def check_slice_annotations(cls):
+        """Check the slice annotations.
+        This is a general check for slice annotations. Subclass should extend this method
+        to provide specific checks for their own slice annotations.
+        """
+        for slice_name, slice_type in cls.get_slice_annotations().items():
+            source_types = list(get_source_type(slice_type))
+            if len(source_types) == 0:
+                raise TypeError(f"Expected a source type, got {source_types}")
+
+    @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler):
+        """Get the Pydantic core schema for the element array."""
+        cls.check_slice_annotations()
         choices: dict[str, CoreSchema] = dict(cls.get_schema_for_slices(handler))
-        if cls.allow_other_elements:
-            choices["@default"] = core_schema.any_schema()
         schema = core_schema.list_schema(
             core_schema.tagged_union_schema(choices=choices, discriminator=cls.discriminator)
         )

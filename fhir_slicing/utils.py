@@ -1,21 +1,26 @@
 import types
-from dataclasses import dataclass
 from typing import (
     Annotated,
-    Any,
-    Iterable,
     Iterator,
     Literal,
-    Sequence,
+    Type,
+    TypeVar,
     Union,
     get_args,
     get_origin,
+    overload,
 )
 
 from .slice import OptionalSlice, Slice, SliceList
 
+T = TypeVar("T")
 
-def get_source_type(annot) -> Iterator[type]:
+
+@overload
+def get_source_type[T](annot, expect: Type[T]) -> Iterator[Type[T]]: ...
+@overload
+def get_source_type[T](annot, expect: None = None) -> Iterator[type]: ...
+def get_source_type[T](annot, expect: Type[T] | None = None) -> Iterator[type | Type[T]]:
     """Extract the source type from a optional type or sequence type
 
     Example:
@@ -30,6 +35,9 @@ def get_source_type(annot) -> Iterator[type]:
     """
     # If the annotation is a type, return the type
     if isinstance(annot, type):
+        if expect is not None:
+            if not issubclass(annot, expect):
+                raise TypeError(f"Expected type to be a subclass of {expect}, got {annot}")
         yield annot
         return
 
@@ -38,27 +46,27 @@ def get_source_type(annot) -> Iterator[type]:
         yield annot
 
     elif origin is Annotated:
-        yield from get_source_type(get_args(annot)[0])
+        yield from get_source_type(get_args(annot)[0], expect=expect)
 
     elif origin is list or origin is set:
-        yield from get_source_type(get_args(annot)[0])
+        yield from get_source_type(get_args(annot)[0], expect=expect)
 
     elif origin in (SliceList, OptionalSlice, Slice):
-        yield from get_source_type(get_args(annot)[0])
+        yield from get_source_type(get_args(annot)[0], expect=expect)
 
     # check for Union or UnionType
     elif origin is Union or isinstance(annot, types.UnionType):
         for arg in get_args(annot):
             if arg is not type(None):
-                yield from get_source_type(arg)
+                yield from get_source_type(arg, expect=expect)
     else:
         raise ValueError(f"Cannot determine source type from {annot}")
 
 
-def get_value_from_literal(literal: type[Any] | None) -> Any:
+def get_value_from_literal(literal: type | None) -> int | str | None:
     """Get the value from a Literal type"""
-    if not isinstance(literal, Literal):
-        raise ValueError(f"Expected a Literal type, got {literal}")
+    if get_origin(literal) is not Literal:
+        return None
     return get_args(literal)[0]
 
 
@@ -126,46 +134,3 @@ FHIRType = Literal[
     "Meta",
     "Narrative",
 ]
-
-
-@dataclass
-class Cardinality:
-    min_length: int = 0
-    max_length: int | Literal["*"] = "*"
-
-    def aggregate_elements(self, elements: Iterator[Any] | Iterable[Any]):
-        """Map the element array to the expected python type
-
-        when 0..1 -> Optional[<source_type>]
-        when 1..1 -> <source_type>
-        when 0..* -> Iterator[<source_type>]
-        when 1..* -> Iterator[<source_type>]
-        """
-        match self.min_length, self.max_length:
-            case 0, 1:
-                return next(iter(elements), None)
-            case 1, 1:
-                return next(iter(elements))
-            case _:
-                return [*elements]
-
-    def iterate_elements(self, value: Any):
-        """Iterate over the elements"""
-        match self.min_length, self.max_length:
-            case 0, 1:
-                if value is not None:
-                    yield value
-            case 1, 1:
-                yield value
-            case 0, "*":
-                if value is not None:
-                    yield from value
-            case 1, "*":
-                yield from value
-
-    @classmethod
-    def from_metadata(cls, metadata: Sequence[Any]):
-        for meta in metadata:
-            if isinstance(meta, Cardinality):
-                return meta
-        return cls()

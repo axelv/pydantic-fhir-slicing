@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal
+from typing import Any, Literal
 
 from pydantic import PositiveInt, TypeAdapter
 
@@ -27,6 +27,7 @@ def test_extension_array_from_extension_list():
     class ExtensionArray(BaseExtensionArray):
         a: SliceList[MyExtensionA] = slice(0, "*")
         b: Slice[MyExtensionB] = slice(1, 1)
+        _: SliceList[GeneralExtension] = slice(0, "*")
 
     ext_list = [
         MyExtensionA(url="http://example.com/extension-a", valueString="a"),
@@ -50,9 +51,9 @@ def test_extension_array_validator():
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
-        allow_other_elements: ClassVar[bool] = True
         a: SliceList[MyExtensionA] = slice(0, "*")
         b: Slice[MyExtensionB] = slice(1, 1)
+        _: SliceList[GeneralExtension] = slice(0, "*")
 
     ext_list = [
         {"url": "http://example.com", "valueInteger": 5},
