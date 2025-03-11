@@ -8,7 +8,11 @@ from fhir_slicing.typing import ElementArray
 TValueType = TypeVar("TValueType", covariant=True)
 
 
-class Slice[TValueType]:
+class BaseSlice[TValueType]:
+    def __init__(self, min_items: int = 0, max_items: int | Literal["*"] = "*"):
+        self.min_items = min_items
+        self.max_items = max_items
+
     def __set_name__(self, owner: ElementArray[Any], name: str):
         self.name = name
         self.filter_elements: partial[Iterable[TValueType]] = partial(
@@ -18,6 +22,8 @@ class Slice[TValueType]:
             owner.is_element_part_of_slice, slice_name=self.name
         )
 
+
+class Slice[TValueType](BaseSlice[TValueType]):
     def __get__(self, obj: ElementArray[Any], objtype: type[Container] | None = None) -> TValueType:
         try:
             return next(iter(self.filter_elements(obj)))
@@ -32,7 +38,7 @@ class Slice[TValueType]:
         raise ValueError("Cannot set value on slice.")
 
 
-class OptionalSlice[TValueType]:
+class OptionalSlice[TValueType](BaseSlice[TValueType]):
     def __set_name__(self, owner: ElementArray[Any], name: str):
         self.name = name
         self.filter_elements: partial[Iterable[TValueType]] = partial(
@@ -52,7 +58,7 @@ class OptionalSlice[TValueType]:
                 return
 
 
-class SliceList[TValueType]:
+class SliceList[TValueType](BaseSlice[TValueType]):
     def __set_name__(self, owner: ElementArray[Any], name: str):
         self.name = name
         self.filter_elements: partial[Iterable[TValueType]] = partial(
@@ -80,11 +86,13 @@ def slice(min: Literal[1], max: Literal[1]) -> Slice: ...
 def slice(min: NonZeroPositiveInt, max: Literal["*"]) -> SliceList: ...
 def slice(min: int, max: int | Literal["*"]):
     match (min, max):
-        case (1, 1):
-            return Slice()
         case (0, 1):
-            return OptionalSlice()
+            return OptionalSlice(min_items=0, max_items=1)
+        case (1, 1):
+            return Slice(min_items=1, max_items=1)
         case (0, "*"):
-            return SliceList()
+            return SliceList(min_items=0, max_items="*")
+        case (1, "*"):
+            return SliceList(min_items=0, max_items="*")
         case _:
             raise ValueError("Invalid slice cardinality.")

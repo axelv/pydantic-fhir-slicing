@@ -14,6 +14,7 @@ from typing import (
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
+from fhir_slicing.slice import BaseSlice
 from fhir_slicing.slice_schema import get_slice_union_schema
 from fhir_slicing.typing import ElementArray
 
@@ -65,20 +66,45 @@ class BaseElementArray[TElement](ElementArray[TElement]):
         return False
 
     @classmethod
+    def get_validator(cls):
+        def get_slice_validator(cls, slice_name):
+            descriptor = inspect.getattr_static(cls, slice_name)
+            if not isinstance(descriptor, BaseSlice):
+                raise TypeError(f"Expected Slice, OptionalSlice or SliceList, got {type(descriptor)}")
+
+        def validator(elements: Self):
+            for slice_name in inspect.get_annotations(cls).keys():
+                descriptor = inspect.getattr_static(cls, slice_name)
+                if not isinstance(descriptor, BaseSlice):
+                    raise TypeError(f"Expected Slice, OptionalSlice or SliceList, got {type(descriptor)}")
+                num_items = len(list(cls.filter_elements_for_slice(elements, slice_name)))
+                if descriptor.max_items is not None and num_items > descriptor.max_items:
+                    raise ValueError(f"Too many items in slice {slice_name}")
+                elif num_items < descriptor.min_items:
+                    raise ValueError(f"Not enough items in slice {slice_name}")
+                return elements
+
+        return validator
+
+    @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler):
         """Get the Pydantic core schema for the element array."""
         slice_union_schema = get_slice_union_schema(source_type, handler, slice_annotations=get_slice_annotations(cls))
         list_schema = core_schema.list_schema(slice_union_schema)
         # TODO add after validators for cardinality of each slice
+        schema = core_schema.no_info_after_validator_function(
+            cls.get_validator(),
+            list_schema,
+        )
         return core_schema.json_or_python_schema(
             core_schema.no_info_after_validator_function(
                 cls,
-                list_schema,
+                schema,
             ),
             core_schema.union_schema(
                 [
                     core_schema.is_instance_schema(cls),
-                    core_schema.no_info_after_validator_function(cls, list_schema),
+                    core_schema.no_info_after_validator_function(cls, schema),
                 ]
             ),
         )
