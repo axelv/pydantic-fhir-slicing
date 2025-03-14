@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Protocol
 
 from fhir_slicing.element_array import BaseElementArray
 from fhir_slicing.utils import get_source_type, get_value_from_literal
@@ -25,7 +25,18 @@ class GeneralCoding(BaseCoding):
     model_config = {"extra": "allow"}
 
 
-class BaseCodingArray(BaseElementArray[GeneralCoding]):
+class CodingProtocol[TSystem: str](Protocol):
+    @property
+    def system(self) -> TSystem: ...
+
+    @property
+    def code(self) -> str: ...
+
+    @classmethod
+    def get_system(cls) -> TSystem | None: ...
+
+
+class BaseCodingArray[TCoding: CodingProtocol = GeneralCoding](BaseElementArray[TCoding]):
     @classmethod
     def get_system(cls, value: Mapping) -> str | None:
         """Get the system of the coding"""
