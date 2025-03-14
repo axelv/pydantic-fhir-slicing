@@ -3,12 +3,13 @@ from typing import Literal
 from pydantic import TypeAdapter
 
 from fhir_slicing.base import BaseModel
-from fhir_slicing.coding import BaseCoding, BaseCodingArray, GeneralCoding, LOINCCoding, SCTCoding
+from fhir_slicing.coding import BaseCoding, GeneralCoding, LOINCCoding, SCTCoding
+from fhir_slicing.element_array import BaseElementArray
 from fhir_slicing.slice import OptionalSlice, Slice, SliceList, slice
 
 
 def test_multi_coding_concepts():
-    class CodingArray(BaseCodingArray):
+    class CodingArray(BaseElementArray):
         sct: Slice[SCTCoding] = slice(1, 1)
         loinc: OptionalSlice[LOINCCoding] = slice(0, 1)
         _: SliceList[GeneralCoding] = slice(0, "*")
@@ -42,7 +43,7 @@ def test_task_code():
         code: Literal["complete-questionnaire", "process-response"]
         system: Literal["https://tiro.health/fhir/CodeSystem/atticus-task-type"]
 
-    class TaskCodingArray(BaseCodingArray[GeneralCoding | AtticusTaskType]):
+    class TaskCodingArray(BaseElementArray[GeneralCoding | AtticusTaskType]):
         atticus_task_type: Slice[AtticusTaskType] = slice(1, 1)
         _: SliceList[GeneralCoding] = slice(0, "*")
 

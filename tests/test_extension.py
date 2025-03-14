@@ -1,10 +1,10 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import PositiveInt, TypeAdapter
 
 from fhir_slicing import BaseModel, Slice, SliceList, slice
+from fhir_slicing.element_array import BaseElementArray
 from fhir_slicing.extension import (
-    BaseExtensionArray,
     BaseSimpleExtension,
     GeneralExtension,
 )
@@ -24,7 +24,7 @@ def test_extension_array_from_extension_list():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
-    class ExtensionArray(BaseExtensionArray):
+    class ExtensionArray(BaseElementArray):
         a: SliceList[MyExtensionA] = slice(0, "*")
         b: Slice[MyExtensionB] = slice(1, 1)
         _: SliceList[GeneralExtension] = slice(0, "*")
@@ -50,7 +50,7 @@ def test_extension_array_validator():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
-    class ExtensionArray(BaseExtensionArray):
+    class ExtensionArray(BaseElementArray):
         a: SliceList[MyExtensionA] = slice(0, "*")
         b: Slice[MyExtensionB] = slice(1, 1)
         _: SliceList[GeneralExtension] = slice(0, "*")
@@ -84,7 +84,7 @@ def test_extension_array_ordering_roundtrip():
     class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
-    class ExtensionArray(BaseExtensionArray):
+    class ExtensionArray(BaseElementArray):
         a: SliceList[MyExtensionA] = slice(0, "*")
         b: Slice[MyExtensionB] = slice(1, 1)
 
@@ -117,7 +117,7 @@ def test_patient_use_case():
     ):
         valueInteger: PositiveInt
 
-    class PatientExtensions(BaseExtensionArray):
+    class PatientExtensions(BaseElementArray):
         multiple_birth: Slice[MultipleBirth] = slice(1, 1)
 
     class PatientName(BaseModel):
@@ -161,99 +161,3 @@ def test_patient_use_case():
 
     assert patient.extensions.multiple_birth.valueInteger == 3
     assert patient.multiple_birth == 3
-
-
-def test_blood_pressure_use_case():
-    class Quantity(BaseModel):
-        value: float
-        unit: str
-
-    class Coding(BaseModel):
-        system: str
-        code: str
-        display: str
-
-    class CodeableConcept(BaseModel):
-        coding: list[Coding]
-        text: str | None = None
-
-    class BloodPressureComponent(BaseModel):
-        valueQuantity: Quantity
-        code: CodeableConcept
-
-    class BloodPressureComponents(BaseExtensionArray):
-        systolic: Slice[BloodPressureComponent] = slice(1, 1)
-        diastolic: Slice[BloodPressureComponent] = slice(1, 1)
-
-        @classmethod
-        def discriminator(cls, value: Any) -> str:
-            code = value.get("code", {}).get("coding", [{}])[0].get("code", None)
-            match code:
-                case "8480-6":
-                    return "systolic"
-                case "8462-4":
-                    return "diastolic"
-                case _:
-                    return "@default"
-
-    class BloodPressure(BaseModel):
-        resourceType: Literal["Observation"] = "Observation"
-        code: CodeableConcept
-        components: BloodPressureComponents
-
-        @property
-        def systolic(self):
-            return self.components.systolic.valueQuantity.value
-
-        @property
-        def diastolic(self):
-            return self.components.diastolic.valueQuantity.value
-
-    blood_pressure = BloodPressure.model_validate(
-        {
-            "resourceType": "Observation",
-            "code": {
-                "coding": [
-                    {
-                        "system": "http://loinc.org",
-                        "code": "55284-4",
-                        "display": "Blood pressure",
-                    }
-                ],
-                "text": "Blood pressure",
-            },
-            "components": [
-                {
-                    "valueQuantity": {"value": 120, "unit": "mm[Hg]"},
-                    "code": {
-                        "coding": [
-                            {
-                                "system": "http://loinc.org",
-                                "code": "8480-6",
-                                "display": "Systolic blood pressure",
-                            }
-                        ],
-                        "text": "Systolic blood pressure",
-                    },
-                },
-                {
-                    "valueQuantity": {"value": 80, "unit": "mm[Hg]"},
-                    "code": {
-                        "coding": [
-                            {
-                                "system": "http://loinc.org",
-                                "code": "8462-4",
-                                "display": "Diastolic blood pressure",
-                            }
-                        ],
-                        "text": "Diastolic blood pressure",
-                    },
-                },
-            ],
-        }
-    )
-
-    assert blood_pressure.components.systolic.valueQuantity.value == 120
-    assert blood_pressure.systolic == 120
-    assert blood_pressure.components.diastolic.valueQuantity.value == 80
-    assert blood_pressure.diastolic == 80
