@@ -3,7 +3,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from fhir_slicing import OptionalSlice, SliceList, slice
-from fhir_slicing.usage_context import BaseUsageContext, BaseUsageContextArray, UsageCoding
+from fhir_slicing.element_array import BaseElementArray
+from fhir_slicing.usage_context import BaseUsageContext, UsageCoding
 
 UsageContextType = Literal["http://terminology.hl7.org/CodeSystem/usage-context-type"]
 AgeContextCoding = UsageCoding[UsageContextType, Literal["age"], None]
@@ -50,14 +51,8 @@ class ProjectContext(BaseUsageContext[ProgramContextCoding]):
         )
 
 
-def test_usage_context_model_get_url():
-    assert AgeContext.get_code() == UsageCoding(
-        system="http://terminology.hl7.org/CodeSystem/usage-context-type", code="age"
-    )
-
-
 def test_usage_context_array_from_usage_context_list():
-    class UsageContextArray(BaseUsageContextArray):
+    class UsageContextArray(BaseElementArray):
         project: SliceList[ProjectContext] = slice(0, "*")
         age_range: OptionalSlice[AgeContext] = slice(0, 1)
         _: SliceList[BaseUsageContext] = slice(0, "*")

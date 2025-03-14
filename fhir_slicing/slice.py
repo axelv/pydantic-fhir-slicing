@@ -1,62 +1,69 @@
-from typing import Annotated, Any, Container, Iterable, List, Literal, Protocol, TypeVar, overload
+from functools import partial
+from typing import Annotated, Any, Container, Iterable, List, Literal, TypeGuard, TypeVar, overload
 
 import annotated_types
+
+from fhir_slicing.typing import ElementArray
 
 TValueType = TypeVar("TValueType", covariant=True)
 
 
-class ElementArray(Protocol):
-    @classmethod
-    def discriminator(cls, value: Any) -> str | None:
-        """Get the discriminator value for a given value."""
-        ...
-
-
-class BaseSlice:
-    def __set_name__(self, owner: ElementArray, name: str):
+class Slice[TValueType]:
+    def __set_name__(self, owner: ElementArray[Any], name: str):
         self.name = name
-        self.discriminator_func = owner.discriminator
+        self.filter_elements: partial[Iterable[TValueType]] = partial(
+            owner.filter_elements_for_slice, slice_name=self.name
+        )
+        self.is_element_part_of_slice: partial[TypeGuard[TValueType]] = partial(
+            owner.is_element_part_of_slice, slice_name=self.name
+        )
 
-    def filter_element(self, element):
-        return self.discriminator_func(element) == self.name
-
-
-class Slice[TValueType](BaseSlice):
-    def __get__(self, obj: Iterable, objtype: type[Container] | None = None) -> TValueType:
+    def __get__(self, obj: ElementArray[Any], objtype: type[Container] | None = None) -> TValueType:
         try:
-            return next(iter(filter(self.filter_element, obj)))
+            return next(iter(self.filter_elements(obj)))
         except StopIteration:
             raise ValueError(f"No value for slice '{self.name}'.")
 
-    def __set__(self, obj: List, value: Any):
-        for index, element in enumerate(obj):
-            if self.discriminator_func(element) == self.discriminator_func(value):
-                obj[index] = value
-                return
+    def __set__(self, obj: ElementArray[TValueType], element: Any):
+        for index, old_element in enumerate(obj):
+            if self.is_element_part_of_slice(old_element):
+                obj[index] = element
+            return
         raise ValueError("Cannot set value on slice.")
 
 
-class OptionalSlice[TValueType](BaseSlice):
-    def __get__(self, obj: Iterable, objtype: type[Container] | None = None) -> TValueType | None:
-        return next(iter(filter(self.filter_element, obj)), None)
+class OptionalSlice[TValueType]:
+    def __set_name__(self, owner: ElementArray[Any], name: str):
+        self.name = name
+        self.filter_elements: partial[Iterable[TValueType]] = partial(
+            owner.filter_elements_for_slice, slice_name=self.name
+        )
+        self.is_element_part_of_slice: partial[TypeGuard[TValueType]] = partial(
+            owner.is_element_part_of_slice, slice_name=self.name
+        )
 
-    def __set__(self, obj: List, value: Any):
-        for index, element in enumerate(obj):
-            if self.discriminator_func(element) == self.discriminator_func(value):
-                obj[index] = value
+    def __get__(self, obj: ElementArray[Any], objtype: type[Container] | None = None) -> TValueType | None:
+        return next(iter(self.filter_elements(obj)), None)
+
+    def __set__(self, obj: ElementArray[Any], element: TValueType):
+        for index, old_element in enumerate(obj):
+            if self.is_element_part_of_slice(old_element):
+                obj[index] = element
                 return
 
 
-class SliceList[TValueType](BaseSlice):
-    def __set_name__(self, owner: ElementArray, name: str):
+class SliceList[TValueType]:
+    def __set_name__(self, owner: ElementArray[Any], name: str):
         self.name = name
-        self.discriminator_func = owner.discriminator
+        self.filter_elements: partial[Iterable[TValueType]] = partial(
+            owner.filter_elements_for_slice, slice_name=self.name
+        )
+        self.is_element_part_of_slice: partial[TypeGuard[TValueType]] = partial(
+            owner.is_element_part_of_slice, slice_name=self.name
+        )
 
-    def filter_element(self, element):
-        return self.discriminator_func(element) == self.name
-
-    def __get__(self, obj: Iterable, objtype: type[Container] | None = None) -> List[TValueType]:
-        return [*filter(self.filter_element, obj)]
+    def __get__(self, obj: ElementArray[Any], objtype: type[Container] | None = None) -> List[TValueType]:
+        return [*self.filter_elements(obj)]
 
     def __set__(self, obj: List, value: List):
         raise NotImplementedError("Cannot set value on slice list.")
