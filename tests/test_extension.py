@@ -161,3 +161,39 @@ def test_patient_use_case():
 
     assert patient.extensions.multiple_birth.valueInteger == 3
     assert patient.multiple_birth == 3
+
+
+def test_extension_array_with_subclassing():
+    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"], str]):
+        valueString: str
+
+    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
+        valueString: str
+
+    class ExtensionArray(BaseElementArray):
+        a: SliceList[MyExtensionA] = slice(0, "*")
+        _: SliceList[GeneralExtension] = slice(0, "*")
+
+    class SubExtensionArray(ExtensionArray):
+        b: Slice[MyExtensionB] = slice(1, 1)
+
+    ext_list = [
+        {"url": "http://example.com", "valueInteger": 5},
+        {"url": "http://example.com/extension-a", "valueString": "1"},
+        {"url": "http://example.com/extension-a", "valueString": "2"},
+        {"url": "http://example.com/extension-a", "valueString": "3"},
+        {"url": "http://example.com/extension-b", "valueString": "4"},
+    ]
+
+    ext_array = TypeAdapter(SubExtensionArray).validate_python(ext_list)
+
+    assert ext_array.a == [
+        MyExtensionA(url="http://example.com/extension-a", valueString="1"),
+        MyExtensionA(url="http://example.com/extension-a", valueString="2"),
+        MyExtensionA(url="http://example.com/extension-a", valueString="3"),
+    ]
+
+    assert ext_array.b == MyExtensionB(url="http://example.com/extension-b", valueString="4")
+
+    ext_list_roundtrip = TypeAdapter(ExtensionArray).dump_python(ext_array, mode="python")
+    assert ext_list_roundtrip == ext_list
