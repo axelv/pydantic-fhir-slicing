@@ -11,17 +11,17 @@ from fhir_slicing.extension import (
 
 
 def test_extension_model_get_url():
-    class MyExtension(BaseSimpleExtension[Literal["http://example.com"]]):
+    class MyExtension(BaseSimpleExtension[Literal["http://example.com"], str]):
         valueString: str
 
     assert MyExtension.get_url() == "http://example.com"
 
 
 def test_extension_array_from_extension_list():
-    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"]]):
+    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"], str]):
         valueString: str
 
-    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
+    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
@@ -44,10 +44,10 @@ def test_extension_array_from_extension_list():
 
 
 def test_extension_array_validator():
-    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"]]):
+    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"], str]):
         valueString: str
 
-    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
+    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
@@ -78,10 +78,10 @@ def test_extension_array_validator():
 
 
 def test_extension_array_ordering_roundtrip():
-    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"]]):
+    class MyExtensionA(BaseSimpleExtension[Literal["http://example.com/extension-a"], str]):
         valueString: str
 
-    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"]]):
+    class MyExtensionB(BaseSimpleExtension[Literal["http://example.com/extension-b"], str]):
         valueString: str
 
     class ExtensionArray(BaseExtensionArray):
@@ -112,7 +112,9 @@ def test_extension_array_ordering_roundtrip():
 
 
 def test_patient_use_case():
-    class MultipleBirth(BaseSimpleExtension[Literal["http://hl7.org/fhir/StructureDefinition/patient-multipleBirth"]]):
+    class MultipleBirth(
+        BaseSimpleExtension[Literal["http://hl7.org/fhir/StructureDefinition/patient-multipleBirth"], PositiveInt]
+    ):
         valueInteger: PositiveInt
 
     class PatientExtensions(BaseExtensionArray):

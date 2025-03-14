@@ -2,6 +2,8 @@ from dataclasses import fields
 from typing import (
     Any,
     Mapping,
+    Self,
+    cast,
 )
 
 from .base import BaseModel
@@ -13,24 +15,31 @@ class BaseExtension[TUrl: str](BaseModel):
     url: TUrl
 
     @classmethod
-    def get_url(cls) -> str:
+    def get_url(cls) -> TUrl:
         """Get the url of the extension"""
         url = get_value_from_literal(cls.model_fields["url"].annotation)
         assert isinstance(url, str), f"Expected url to be a string, got {url}"
-        return url
+        return cast(TUrl, url)
 
 
 class GeneralExtension(BaseExtension):
     model_config = {"extra": "allow"}
 
 
-class BaseSimpleExtension[TUrl: str](BaseExtension[TUrl]):
+class BaseSimpleExtension[TUrl: str, TValue](BaseExtension[TUrl]):
     url: TUrl
 
     @property
-    def value(self):
+    def value(self) -> TValue:
         value_field_name = next(field.name for field in fields(self) if field.name.startswith("value"))
         return getattr(self, value_field_name)
+
+    @classmethod
+    def from_value(cls, value: TValue) -> "Self":
+        """Create an extension from a value"""
+        url = cls.get_url()
+        value_field_name = next(field.name for field in fields(cls) if field.name.startswith("value"))
+        return cls(url=url, **{value_field_name: value})
 
 
 class BaseExtensionArray(BaseElementArray[BaseExtension]):
