@@ -83,7 +83,9 @@ class BaseElementArray[TElement](ElementArray[TElement]):
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler):
         """Get the Pydantic core schema for the element array."""
-        slice_union_schema = get_slice_union_schema(source_type, handler, slice_annotations=get_slice_annotations(cls))
+        slice_union_schema = get_slice_union_schema(
+            source_type, handler, slice_annotations=get_slice_annotations(source_type)
+        )
         list_schema = core_schema.list_schema(slice_union_schema)
         # TODO add after validators for cardinality of each slice
 
