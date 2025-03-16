@@ -1,4 +1,3 @@
-from dataclasses import fields
 from typing import (
     Self,
     cast,
@@ -26,13 +25,13 @@ class BaseSimpleExtension[TUrl: str, TValue](BaseExtension[TUrl]):
 
     @property
     def value(self) -> TValue:
-        value_field_name = next(field.name for field in fields(self) if field.name.startswith("value"))
+        value_field_name = next(field_name for field_name in self.model_fields.keys() if field_name.startswith("value"))
         return getattr(self, value_field_name)
 
     @classmethod
     def from_value(cls, value: TValue) -> "Self":
         """Create an extension from a value"""
-        value_field_name = next(field.name for field in fields(cls) if field.name.startswith("value"))
+        value_field_name = next(field_name for field_name in cls.model_fields.keys() if field_name.startswith("value"))
         return cls(url=cls.get_url(), **{value_field_name: value})
 
 
