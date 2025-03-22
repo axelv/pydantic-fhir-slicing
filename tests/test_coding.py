@@ -109,3 +109,32 @@ def test_task_code():
     assert coding_array_json == [
         {"system": "https://tiro.health/fhir/CodeSystem/atticus-task-type", "code": "complete-questionnaire"}
     ]
+
+
+def test_slice_order_in_union():
+    class MyCoding[TCode: str](BaseModel):
+        code: TCode
+        system: Literal["http://mycode.org"]
+        display: str
+
+    class CodingArray[TCode: str](BaseElementArray):
+        sct: Slice[SCTCoding] = slice(1, 1)
+        loinc: SliceList[LOINCCoding] = slice(1, 10)
+        _: SliceList[GeneralCoding] = slice(0, "*")
+        my: Slice[MyCoding[TCode]] = slice(1, 1)
+
+    result = TypeAdapter(CodingArray).validate_python(
+        [
+            {"system": "http://snomed.info/sct", "code": "987654", "display": "Test2"},
+            {"system": "http://loinc.org", "code": "123456", "display": "Test"},
+            {"system": "http://mycode.org", "code": "123456", "display": "Test"},
+            {"system": "http://other.org", "code": "123456", "display": "Test"},
+        ],
+    )
+
+    assert result == [
+        SCTCoding(system="http://snomed.info/sct", code="987654", display="Test2"),
+        LOINCCoding(system="http://loinc.org", code="123456", display="Test"),
+        MyCoding(system="http://mycode.org", code="123456", display="Test"),
+        GeneralCoding(system="http://other.org", code="123456", display="Test"),
+    ]
