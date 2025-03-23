@@ -19,7 +19,7 @@ from fhir_slicing.slice import BaseSlice, slice_validator
 from fhir_slicing.slice_schema import get_slice_union_schema
 from fhir_slicing.typing import ElementArray
 
-from .utils import FHIRType, get_source_type
+from .utils import FHIRType, get_source_type, get_type_parameter_map
 
 TUrl = TypeVar("TUrl", bound=LiteralString)
 TFhirType = TypeVar("TFhirType", bound=FHIRType)
@@ -61,7 +61,7 @@ class BaseElementArray[TElement](ElementArray[TElement]):
     def is_element_part_of_slice(cls, element: TElement, slice_name: str) -> TypeGuard[TElement]:
         """Check if an element is part of a slice."""
         annotation = get_slice_annotations(cls)[slice_name]
-        for element_type in get_source_type(annotation):
+        for element_type in get_source_type(annotation, type_map={}):
             if isinstance(element, element_type):
                 return True
         return False
@@ -84,8 +84,9 @@ class BaseElementArray[TElement](ElementArray[TElement]):
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler):
         """Get the Pydantic core schema for the element array."""
 
+        type_map = get_type_parameter_map(cls, source_type)
         slice_union_schema = get_slice_union_schema(
-            source_type, handler, slice_annotations=get_slice_annotations(source_type)
+            get_slice_annotations(source_type), handler=handler, type_map=type_map
         )
         list_schema = core_schema.list_schema(slice_union_schema)
         # TODO add after validators for cardinality of each slice
