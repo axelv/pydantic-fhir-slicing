@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
 import pytest
 from pydantic import TypeAdapter
@@ -138,3 +138,27 @@ def test_slice_order_in_union():
         MyCoding(system="http://mycode.org", code="123456", display="Test"),
         GeneralCoding(system="http://other.org", code="123456", display="Test"),
     ]
+
+
+TCode = TypeVar("TCode", bound=str)
+
+
+class MyCoding(BaseModel, Generic[TCode]):
+    system: Literal["http://mycode.org"]
+    code: TCode
+    display: str
+
+
+class MyCodingArray(BaseElementArray, Generic[TCode]):
+    my: Slice[MyCoding[TCode]] = slice(1, 1)
+    _: SliceList[GeneralCoding] = slice(0, "*")
+
+
+def test_generic_coding_array():
+    with pytest.raises(ValidationError):
+        TypeAdapter(MyCodingArray[Literal["AAAA"]]).validate_python(
+            [
+                {"system": "http://mycode.org", "code": "123456", "display": "Test"},
+                {"system": "http://other.org", "code": "123456", "display": "Test"},
+            ],
+        )
